@@ -136,7 +136,7 @@
                         全部
                     </button>
                     <button data-category="transit" class="category-btn px-2.5 py-1 text-xs font-medium rounded-full bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 transition">
-                        🚉 軌道/轉運站
+                        🚉 軌道/轉運
                     </button>
                     <button data-category="school" class="category-btn px-2.5 py-1 text-xs font-medium rounded-full bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 transition">
                         🏫 學校文教
@@ -159,6 +159,18 @@
                         <i data-lucide="x-circle" class="w-4 h-4"></i>
                     </button>
                 </div>
+            </div>
+
+            <!-- 地址高精度定位校正開關 -->
+            <div class="flex items-center justify-between p-2.5 bg-sky-50 rounded-lg border border-sky-100">
+                <div class="flex items-center space-x-2">
+                    <i data-lucide="satellite" class="w-4 h-4 text-brand-600 animate-pulse"></i>
+                    <span class="text-xs font-semibold text-slate-700">點擊即時啟動地址高精度校正</span>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" id="toggle-calibration" class="sr-only peer" checked>
+                    <div class="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-brand-600"></div>
+                </label>
             </div>
         </div>
 
@@ -197,15 +209,26 @@
         <!-- 地圖容器 -->
         <div id="map" class="w-full h-full"></div>
 
-        <!-- 頂部浮動標題 (電腦版顯示) -->
-        <div class="hidden md:block absolute top-4 left-4 z-[1000] bg-white/95 backdrop-blur-md px-4 py-3 rounded-xl shadow-lg border border-slate-100 max-w-sm pointer-events-auto">
-            <div class="flex items-center space-x-3">
-                <div class="p-2 bg-brand-600 text-white rounded-lg">
-                    <i data-lucide="bus" class="w-5 h-5"></i>
+        <!-- 頂部自訂任意地址定位搜尋面板 -->
+        <div class="absolute top-4 left-4 md:left-[104px] z-[1000] bg-white/95 backdrop-blur-md p-3 rounded-xl shadow-lg border border-slate-200/80 max-w-xs md:max-w-md w-[calc(100%-2rem)] md:w-96 pointer-events-auto">
+            <div class="space-y-2">
+                <div class="flex items-center space-x-2">
+                    <span class="flex h-2 w-2 relative">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-2 w-2 bg-orange-500"></span>
+                    </span>
+                    <h2 class="font-bold text-slate-800 text-xs">輸入任意地址，尋找最近候車亭</h2>
                 </div>
-                <div>
-                    <h2 class="font-bold text-slate-800 text-sm">彰化縣公車候車亭分佈</h2>
-                    <p class="text-xs text-slate-500">全縣共 <span class="font-semibold text-brand-600">106</span> 個建置完妥站點</p>
+                <div class="flex space-x-1.5">
+                    <div class="relative flex-1">
+                        <input type="text" id="custom-address-input" placeholder="例如: 彰化市中山路二段416號..." class="w-full pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-brand-600 focus:border-brand-600 shadow-sm transition">
+                        <div class="absolute inset-y-0 left-0 flex items-center pl-2.5 pointer-events-none text-slate-400">
+                            <i data-lucide="navigation" class="w-3.5 h-3.5"></i>
+                        </div>
+                    </div>
+                    <button id="btn-search-address" class="px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold rounded-lg shadow-sm transition-all duration-200 flex items-center space-x-1 shrink-0">
+                        <span>定位</span>
+                    </button>
                 </div>
             </div>
         </div>
@@ -250,114 +273,114 @@
     <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
 
     <script>
-        // 候車亭點位資料 (完整保存 106 站點)
+        // 候車亭點位資料 (完整保存 106 站點，含有位移狀態、校正旗標)
         var data = [
-            {"name": "彰化女中", "address": "彰化市光復路62號", "lat": 24.080963, "lng": 120.544269, "town": "彰化市"},
-            {"name": "秀傳醫院", "address": "彰化市中山路1段542號", "lat": 24.065247, "lng": 120.537221, "town": "彰化市"},
-            {"name": "彰化縣原住民生活館", "address": "彰化縣彰化市中山路三段266號對面", "lat": 24.08656, "lng": 120.559642, "town": "彰化市"},
-            {"name": "縣政府", "address": "彰化市中山路二段416號", "lat": 24.075679, "lng": 120.544167, "town": "彰化市"},
-            {"name": "民生國小", "address": "彰化縣彰化市民生路338號旁", "lat": 24.084591, "lng": 120.542248, "town": "彰化市"},
-            {"name": "太極新村", "address": "彰化縣彰化市公園路一段180號", "lat": 24.082729, "lng": 120.552803, "town": "彰化市"},
-            {"name": "大竹國小", "address": "彰化縣彰化市彰南路二段164-1號", "lat": 24.082006, "lng": 120.579698, "town": "彰化市"},
-            {"name": "南興國小(北行)", "address": "彰化縣彰化市中山路一段44號對面", "lat": 24.05831, "lng": 120.534241, "town": "彰化市"},
-            {"name": "和美國中", "address": "和美鎮西園路15號", "lat": 24.111818, "lng": 120.491419, "town": "和美鎮"},
-            {"name": "道周醫院", "address": "和美鎮和卿路12號旁", "lat": 24.110682, "lng": 120.494794, "town": "和美鎮"},
-            {"name": "新庄里", "address": "和美鎮彰美路2段122號對面", "lat": 24.103986, "lng": 120.53239, "town": "和美鎮"},
-            {"name": "中寮", "address": "和美鎮彰新路4段180號", "lat": 24.131976, "lng": 120.481545, "town": "和美鎮"},
-            {"name": "鹿港鎮公所", "address": "鹿港鎮民權路168號", "lat": 24.057393, "lng": 120.435745, "town": "鹿港鎮"},
-            {"name": "老街(民俗文物館)", "address": "鹿港鎮中山路152號", "lat": 24.053535, "lng": 120.433435, "town": "鹿港鎮"},
-            {"name": "火車站(後站)", "address": "鹿港鎮彰鹿路八段114號對面", "lat": 24.053641, "lng": 120.440263, "town": "鹿港鎮"},
-            {"name": "崙仔腳", "address": "鹿港鎮彰鹿路五段100號", "lat": 23.999696, "lng": 120.463691, "town": "鹿港鎮"},
-            {"name": "線西鄉公所", "address": "線西鄉寓埔村中央路二段25號", "lat": 24.129337, "lng": 120.469145, "town": "線西鄉"},
-            {"name": "曉陽國小", "address": "線西鄉頂犁村中央路一段331號", "lat": 24.114757, "lng": 120.467469, "town": "線西鄉"},
-            {"name": "伸港鄉公所", "address": "伸港鄉中興路二段201號", "lat": 24.158145, "lng": 120.486259, "town": "伸港鄉"},
-            {"name": "曾家村", "address": "伸港鄉彰新路七段572號對面", "lat": 24.144415, "lng": 120.505672, "town": "伸港鄉"},
-            {"name": "花壇火車站", "address": "花壇鄉花壇街243號", "lat": 24.02598, "lng": 120.538555, "town": "花壇鄉"},
-            {"name": "白沙坑", "address": "花壇鄉彰員路二段380號", "lat": 24.030538, "lng": 120.550186, "town": "花壇鄉"},
-            {"name": "大村火車站", "address": "大村鄉過圳村福進路100號", "lat": 23.992645, "lng": 120.540103, "town": "大村鄉"},
-            {"name": "村上國小", "address": "大村鄉中山路二段260號", "lat": 23.99446, "lng": 120.533722, "town": "大村鄉"},
-            {"name": "員林火車站", "address": "員林市民權路55號", "lat": 23.958742, "lng": 120.568393, "town": "員林市"},
-            {"name": "員林轉運站", "address": "員林市靜修路52-1號", "lat": 23.959955, "lng": 120.565406, "town": "員林市"},
-            {"name": "員林家商", "address": "員林市中正路50號", "lat": 23.95159, "lng": 120.569424, "town": "員林市"},
-            {"name": "崇實高工", "address": "員林市育英路100號", "lat": 23.95908, "lng": 120.57321, "town": "員林市"},
-            {"name": "員林農工", "address": "員林市員水路二段313號", "lat": 23.95015, "lng": 120.58229, "town": "員林市"},
-            {"name": "東山", "address": "員林市山腳路四段226號", "lat": 23.968037, "lng": 120.592534, "town": "員林市"},
-            {"name": "社頭火車站", "address": "社頭鄉社站路50號", "lat": 23.896173, "lng": 120.562304, "town": "社頭鄉"},
-            {"name": "社頭鄉公所", "address": "社頭鄉社頭村西路一段290號", "lat": 23.89437, "lng": 120.563032, "town": "社頭鄉"},
-            {"name": "田中火車站", "address": "田中鎮中路里興工路1號", "lat": 23.858253, "lng": 120.590924, "town": "田中鎮"},
-            {"name": "高鐵彰化站", "address": "田中鎮高鐵彰化站大社路二段100號", "lat": 23.87321, "lng": 120.57396, "town": "田中鎮"},
-            {"name": "達德商工", "address": "田中鎮中南路二段100號", "lat": 23.854086, "lng": 120.610214, "town": "田中鎮"},
-            {"name": "田中高中", "address": "田中鎮文化街99號", "lat": 23.85303, "lng": 120.60636, "town": "田中鎮"},
-            {"name": "二水火車站", "address": "二水鄉光文路1號", "lat": 23.811771, "lng": 120.617937, "town": "二水鄉"},
-            {"name": "二水鄉公所", "address": "二水鄉過圳村光文路119號", "lat": 23.813083, "lng": 120.615286, "town": "二水鄉"},
-            {"name": "永靖鄉公所", "address": "永靖鄉永西村中山路二段273號", "lat": 23.921312, "lng": 120.548483, "town": "永靖鄉"},
-            {"name": "永東村", "address": "永靖鄉永靖街17號", "lat": 23.924823, "lng": 120.543596, "town": "永靖鄉"},
-            {"name": "田尾公路花園", "address": "田尾鄉民生路一段180號對面", "lat": 23.90045, "lng": 120.52839, "town": "田尾鄉"},
-            {"name": "田尾鄉公所", "address": "田尾鄉公所路51號", "lat": 23.891157, "lng": 120.526276, "town": "田尾鄉"},
-            {"name": "北斗奠安宮", "address": "北斗鎮東門里宮前街1-14號", "lat": 23.872288, "lng": 120.525642, "town": "北斗鎮"},
-            {"name": "北斗家商", "address": "北斗鎮大道里地政路421號", "lat": 23.88206, "lng": 120.52187, "town": "北斗鎮"},
-            {"name": "溪州鄉公所", "address": "溪州鄉溪州村溪下路四段560號", "lat": 23.853874, "lng": 120.490899, "town": "溪州鄉"},
-            {"name": "溪州公園", "address": "溪州鄉中央路三段138號", "lat": 23.837833, "lng": 120.523091, "town": "溪州鄉"},
-            {"name": "竹塘鄉公所", "address": "竹塘鄉竹塘村竹林路一段305號", "lat": 23.859669, "lng": 120.428456, "town": "竹塘鄉"},
-            {"name": "二林工商", "address": "二林鎮豐田里斗苑路四段221號", "lat": 23.90013, "lng": 120.37563, "town": "二林鎮"},
-            {"name": "二林轉運站", "address": "二林鎮斗苑路五段20號", "lat": 23.89989, "lng": 120.37581, "town": "二林鎮"},
-            {"name": "大城鄉公所", "address": "大城鄉大城村中平路185號", "lat": 23.852336, "lng": 120.320498, "town": "大城鄉"},
-            {"name": "芳苑鄉公所", "address": "芳苑鄉芳苑村斗苑路芳苑段202號", "lat": 23.926117, "lng": 120.317542, "town": "芳苑鄉"},
-            {"name": "王功", "address": "芳苑鄉王功村芳漢路王功段500號", "lat": 23.968037, "lng": 120.334125, "town": "芳苑鄉"},
-            {"name": "溪湖轉運站", "address": "溪湖鎮員鹿路三段245號旁", "lat": 23.95159, "lng": 120.47895, "town": "溪湖鎮"},
-            {"name": "溪湖高中", "address": "溪湖鎮大突里五德街100號", "lat": 23.958742, "lng": 120.468393, "town": "溪湖鎮"},
-            {"name": "埔鹽鄉公所", "address": "埔鹽鄉好修村中正路84號", "lat": 23.983226, "lng": 120.465487, "town": "埔鹽鄉"},
-            {"name": "埔心鄉公所", "address": "埔心鄉義民村員鹿路二段254號", "lat": 23.951478, "lng": 120.528439, "town": "埔心鄉"},
-            {"name": "彰化醫院(南行)", "address": "埔心鄉中正路二段80號", "lat": 23.96347, "lng": 120.50543, "town": "埔心鄉"},
-            {"name": "福興鄉公所", "address": "福興鄉橋頭村彰鹿路七段495號", "lat": 24.050631, "lng": 120.453215, "town": "福興鄉"},
-            {"name": "和美鎮公所", "address": "和美鎮鹿和路六段337號", "lat": 24.11025, "lng": 120.49583, "town": "和美鎮"},
-            {"name": "伸港國中", "address": "伸港鄉新港村新港路190號", "lat": 24.15234, "lng": 120.48542, "town": "伸港鄉"},
-            {"name": "花壇鄉公所", "address": "花壇鄉南口村中山路二段250號", "lat": 24.02534, "lng": 120.53915, "town": "花壇鄉"},
-            {"name": "村上火車站", "address": "大村鄉村上村福中路100號", "lat": 23.99342, "lng": 120.53852, "town": "大村鄉"},
-            {"name": "永靖火車站", "address": "永靖鄉永興村站前路1號", "lat": 23.91852, "lng": 120.55234, "town": "永靖鄉"},
-            {"name": "社頭國中", "address": "社頭鄉中興路1號", "lat": 23.89234, "lng": 120.56452, "town": "社頭鄉"},
-            {"name": "二水國中", "address": "二水鄉源泉村文化路1號", "lat": 23.80852, "lng": 120.62234, "town": "二水鄉"},
-            {"name": "北斗鎮公所", "address": "北斗鎮地政路421號", "lat": 23.87534, "lng": 120.52352, "town": "北斗鎮"},
-            {"name": "溪州國小", "address": "溪州鄉溪州村中央路三段300號", "lat": 23.85123, "lng": 120.49234, "town": "溪州鄉"},
-            {"name": "竹塘國小", "address": "竹塘鄉竹塘村竹林路二段1號", "lat": 23.85652, "lng": 120.42534, "town": "竹塘鄉"},
-            {"name": "二林鎮公所", "address": "二林鎮斗苑路四段636號", "lat": 23.89852, "lng": 120.36852, "town": "二林鎮"},
-            {"name": "大城國小", "address": "大城鄉大城村中平路1號", "lat": 23.85023, "lng": 120.31852, "town": "大城鄉"},
-            {"name": "芳苑國中", "address": "芳苑鄉芳苑村斗苑路1號", "lat": 23.92123, "lng": 120.30542, "town": "芳苑鄉"},
-            {"name": "溪湖鎮公所", "address": "溪湖鎮青雅路1號", "lat": 23.95652, "lng": 120.47534, "town": "溪湖鎮"},
-            {"name": "埔鹽國中", "address": "埔鹽鄉好修村中正路1號", "lat": 23.98523, "lng": 120.46123, "town": "埔鹽鄉"},
-            {"name": "埔心國小", "address": "埔心鄉義民村員鹿路二段1號", "lat": 23.95342, "lng": 120.52534, "town": "埔心鄉"},
-            {"name": "福興國中", "address": "福興鄉橋頭村彰鹿路七段1號", "lat": 24.04852, "lng": 120.45652, "town": "福興鄉"},
-            {"name": "秀水鄉公所", "address": "秀水鄉安溪村中山路290號", "lat": 24.03234, "lng": 120.50421, "town": "秀水鄉"},
-            {"name": "秀水高工", "address": "秀水鄉福興村中山路1號", "lat": 24.03521, "lng": 120.50123, "town": "秀水鄉"},
-            {"name": "芬園鄉公所", "address": "芬園鄉芬園村彰南路四段250號", "lat": 24.01234, "lng": 120.62852, "town": "芬園鄉"},
-            {"name": "芬園國中", "address": "芬園鄉芬園村彰南路四段1號", "lat": 24.01521, "lng": 120.62534, "town": "芬園鄉"},
-            {"name": "三條圳 (南行)", "address": "溪州鄉中央路二段", "lat": 23.91234, "lng": 120.49521, "town": "溪州鄉"},
-            {"name": "五汁頭(北行)", "address": "永靖鄉中山路一段", "lat": 23.93521, "lng": 120.55421, "town": "永靖鄉"},
-            {"name": "正新輪胎(北行)", "address": "溪州鄉中山路", "lat": 23.86852, "lng": 120.47534, "town": "溪州鄉"},
-            {"name": "溪厝太平路(北行)", "address": "溪州鄉太平路", "lat": 23.84852, "lng": 120.46521, "town": "溪州鄉"},
-            {"name": "橋仔(南行)", "address": "北斗鎮斗苑路", "lat": 23.92852, "lng": 120.48521, "town": "北斗鎮"},
-            {"name": "大成國中", "address": "彰化市自強路1號", "lat": 24.09123, "lng": 120.54234, "town": "彰化市"},
-            {"name": "彰化高商", "address": "彰化市南郭路一段326號", "lat": 24.07234, "lng": 120.55214, "town": "彰化市"},
-            {"name": "彰化高中", "address": "彰化市中興路78號", "lat": 24.07012, "lng": 120.55432, "town": "彰化市"},
-            {"name": "建國科技大學", "address": "彰化市介壽北路1號", "lat": 24.06523, "lng": 120.54852, "town": "彰化市"},
-            {"name": "彰化師範大學", "address": "彰化市進德路1號", "lat": 24.08852, "lng": 120.55852, "town": "彰化市"},
-            {"name": "和美便民綜合大樓", "address": "和美鎮鹿和路六段", "lat": 24.11234, "lng": 120.49123, "town": "和美鎮"},
-            {"name": "鹿港遊客中心", "address": "鹿港鎮復興路436號", "lat": 24.05912, "lng": 120.43123, "town": "鹿港鎮"},
-            {"name": "鹿港文武廟", "address": "鹿港鎮青雲路2號", "lat": 24.04912, "lng": 120.44123, "town": "鹿港鎮"},
-            {"name": "頂厝里", "address": "鹿港鎮鹿和路一段", "lat": 24.06521, "lng": 120.44852, "town": "鹿港鎮"},
-            {"name": "草港", "address": "鹿港鎮頂草路四段", "lat": 24.09521, "lng": 120.42123, "town": "鹿港鎮"},
-            {"name": "線西國小", "address": "線西鄉中央路二段", "lat": 24.12521, "lng": 120.46521, "town": "線西鄉"},
-            {"name": "伸港鄉醫療綜合大樓", "address": "伸港鄉中興路", "lat": 24.15652, "lng": 120.48123, "town": "伸港鄉"},
-            {"name": "花壇國中", "address": "花壇鄉彰員路三段", "lat": 24.02123, "lng": 120.54852, "town": "花壇鄉"},
-            {"name": "大村國小", "address": "大村鄉中正西路", "lat": 23.99123, "lng": 120.52852, "town": "大村鄉"},
-            {"name": "員林市公所", "address": "員林市三民街18號", "lat": 23.95912, "lng": 120.57123, "town": "員林市"},
-            {"name": "員林演藝廳", "address": "員林市員林大道二段99號", "lat": 23.94521, "lng": 120.56952, "town": "員林市"},
-            {"name": "社頭鄉立圖書館", "address": "社頭鄉信義路", "lat": 23.89123, "lng": 120.56123, "town": "社頭鄉"},
-            {"name": "田中鎮立圖書館", "address": "田中鎮中路街", "lat": 23.85912, "lng": 120.58952, "town": "田中鎮"},
-            {"name": "二水鄉立圖書館", "address": "二水鄉聖化村", "lat": 23.81521, "lng": 120.61123, "town": "二水鄉"},
-            {"name": "北斗鎮立圖書館", "address": "北斗鎮光復路", "lat": 23.87123, "lng": 120.52852, "town": "北斗鎮"},
-            {"name": "溪湖鎮立圖書館", "address": "溪湖鎮太平街", "lat": 23.95521, "lng": 120.47123, "town": "溪湖鎮"},
-            {"name": "和美鎮立圖書館", "address": "和美鎮道周路", "lat": 24.10852, "lng": 120.49852, "town": "和美鎮"}
+            {"name": "彰化女中", "address": "彰化市光復路62號", "lat": 24.080963, "lng": 120.544269, "town": "彰化市", "calibrated": false},
+            {"name": "秀傳醫院", "address": "彰化市中山路1段542號", "lat": 24.065247, "lng": 120.537221, "town": "彰化市", "calibrated": false},
+            {"name": "彰化縣原住民生活館", "address": "彰化縣彰化市中山路三段266號對面", "lat": 24.08656, "lng": 120.559642, "town": "彰化市", "calibrated": false},
+            {"name": "縣政府", "address": "彰化市中山路二段416號", "lat": 24.075679, "lng": 120.544167, "town": "彰化市", "calibrated": false},
+            {"name": "民生國小", "address": "彰化縣彰化市民生路338號旁", "lat": 24.084591, "lng": 120.542248, "town": "彰化市", "calibrated": false},
+            {"name": "太極新村", "address": "彰化縣彰化市公園路一段180號", "lat": 24.082729, "lng": 120.552803, "town": "彰化市", "calibrated": false},
+            {"name": "大竹國小", "address": "彰化縣彰化市彰南路二段164-1號", "lat": 24.082006, "lng": 120.579698, "town": "彰化市", "calibrated": false},
+            {"name": "南興國小(北行)", "address": "彰化縣彰化市中山路一段44號對面", "lat": 24.05831, "lng": 120.534241, "town": "彰化市", "calibrated": false},
+            {"name": "和美國中", "address": "和美鎮西園路15號", "lat": 24.111818, "lng": 120.491419, "town": "和美鎮", "calibrated": false},
+            {"name": "道周醫院", "address": "和美鎮和卿路12號旁", "lat": 24.110682, "lng": 120.494794, "town": "和美鎮", "calibrated": false},
+            {"name": "新庄里", "address": "和美鎮彰美路2段122號對面", "lat": 24.103986, "lng": 120.53239, "town": "和美鎮", "calibrated": false},
+            {"name": "中寮", "address": "和美鎮彰新路4段180號", "lat": 24.131976, "lng": 120.481545, "town": "和美鎮", "calibrated": false},
+            {"name": "鹿港鎮公所", "address": "鹿港鎮民權路168號", "lat": 24.057393, "lng": 120.435745, "town": "鹿港鎮", "calibrated": false},
+            {"name": "老街(民俗文物館)", "address": "鹿港鎮中山路152號", "lat": 24.053535, "lng": 120.433435, "town": "鹿港鎮", "calibrated": false},
+            {"name": "火車站(後站)", "address": "鹿港鎮彰鹿路八段114號對面", "lat": 24.053641, "lng": 120.440263, "town": "鹿港鎮", "calibrated": false},
+            {"name": "崙仔腳", "address": "鹿港鎮彰鹿路五段100號", "lat": 23.999696, "lng": 120.463691, "town": "鹿港鎮", "calibrated": false},
+            {"name": "線西鄉公所", "address": "線西鄉寓埔村中央路二段25號", "lat": 24.129337, "lng": 120.469145, "town": "線西鄉", "calibrated": false},
+            {"name": "曉陽國小", "address": "線西鄉頂犁村中央路一段331號", "lat": 24.114757, "lng": 120.467469, "town": "線西鄉", "calibrated": false},
+            {"name": "伸港鄉公所", "address": "伸港鄉中興路二段201號", "lat": 24.158145, "lng": 120.486259, "town": "伸港鄉", "calibrated": false},
+            {"name": "曾家村", "address": "伸港鄉彰新路七段572號對面", "lat": 24.144415, "lng": 120.505672, "town": "伸港鄉", "calibrated": false},
+            {"name": "花壇火車站", "address": "花壇鄉花壇街243號", "lat": 24.02598, "lng": 120.538555, "town": "花壇鄉", "calibrated": false},
+            {"name": "白沙坑", "address": "花壇鄉彰員路二段380號", "lat": 24.030538, "lng": 120.550186, "town": "花壇鄉", "calibrated": false},
+            {"name": "大村火車站", "address": "大村鄉過圳村福進路100號", "lat": 23.992645, "lng": 120.540103, "town": "大村鄉", "calibrated": false},
+            {"name": "村上國小", "address": "大村鄉中山路二段260號", "lat": 23.99446, "lng": 120.533722, "town": "大村鄉", "calibrated": false},
+            {"name": "員林火車站", "address": "員林市民權路55號", "lat": 23.958742, "lng": 120.568393, "town": "員林市", "calibrated": false},
+            {"name": "員林轉運站", "address": "員林市靜修路52-1號", "lat": 23.959955, "lng": 120.565406, "town": "員林市", "calibrated": false},
+            {"name": "員林家商", "address": "員林市中正路50號", "lat": 23.95159, "lng": 120.569424, "town": "員林市", "calibrated": false},
+            {"name": "崇實高工", "address": "員林市育英路100號", "lat": 23.95908, "lng": 120.57321, "town": "員林市", "calibrated": false},
+            {"name": "員林農工", "address": "員林市員水路二段313號", "lat": 23.95015, "lng": 120.58229, "town": "員林市", "calibrated": false},
+            {"name": "東山", "address": "員林市山腳路四段226號", "lat": 23.968037, "lng": 120.592534, "town": "員林市", "calibrated": false},
+            {"name": "社頭火車站", "address": "社頭鄉社站路50號", "lat": 23.896173, "lng": 120.562304, "town": "社頭鄉", "calibrated": false},
+            {"name": "社頭鄉公所", "address": "社頭鄉社頭村西路一段290號", "lat": 23.89437, "lng": 120.563032, "town": "社頭鄉", "calibrated": false},
+            {"name": "田中火車站", "address": "田中鎮中路里興工路1號", "lat": 23.858253, "lng": 120.590924, "town": "田中鎮", "calibrated": false},
+            {"name": "高鐵彰化站", "address": "田中鎮高鐵彰化站大社路二段100號", "lat": 23.87321, "lng": 120.57396, "town": "田中鎮", "calibrated": false},
+            {"name": "達德商工", "address": "田中鎮中南路二段100號", "lat": 23.854086, "lng": 120.610214, "town": "田中鎮", "calibrated": false},
+            {"name": "田中高中", "address": "田中鎮文化街99號", "lat": 23.85303, "lng": 120.60636, "town": "田中鎮", "calibrated": false},
+            {"name": "二水火車站", "address": "二水鄉光文路1號", "lat": 23.811771, "lng": 120.617937, "town": "二水鄉", "calibrated": false},
+            {"name": "二水鄉公所", "address": "二水鄉過圳村光文路119號", "lat": 23.813083, "lng": 120.615286, "town": "二水鄉", "calibrated": false},
+            {"name": "永靖鄉公所", "address": "永靖鄉永西村中山路二段273號", "lat": 23.921312, "lng": 120.548483, "town": "永靖鄉", "calibrated": false},
+            {"name": "永東村", "address": "永靖鄉永靖街17號", "lat": 23.924823, "lng": 120.543596, "town": "永東村", "calibrated": false},
+            {"name": "田尾公路花園", "address": "田尾鄉民生路一段180號對面", "lat": 23.90045, "lng": 120.52839, "town": "田尾鄉", "calibrated": false},
+            {"name": "田尾鄉公所", "address": "田尾鄉公公所路51號", "lat": 23.891157, "lng": 120.526276, "town": "田尾鄉", "calibrated": false},
+            {"name": "北斗奠安宮", "address": "北斗鎮東門里宮前街1-14號", "lat": 23.872288, "lng": 120.525642, "town": "北斗鎮", "calibrated": false},
+            {"name": "北斗家商", "address": "北斗鎮大道里地政路421號", "lat": 23.88206, "lng": 120.52187, "town": "北斗鎮", "calibrated": false},
+            {"name": "溪州鄉公所", "address": "溪州鄉溪州村溪下路四段560號", "lat": 23.853874, "lng": 120.490899, "town": "溪州鄉", "calibrated": false},
+            {"name": "溪州公園", "address": "溪州鄉中央路三段138號", "lat": 23.837833, "lng": 120.523091, "town": "溪州鄉", "calibrated": false},
+            {"name": "竹塘鄉公所", "address": "竹塘鄉竹塘村竹林路一段305號", "lat": 23.859669, "lng": 120.428456, "town": "竹塘鄉", "calibrated": false},
+            {"name": "二林工商", "address": "二林鎮豐田里斗苑路四段221號", "lat": 23.90013, "lng": 120.37563, "town": "二林鎮", "calibrated": false},
+            {"name": "二林轉運站", "address": "二林鎮斗苑路五段20號", "lat": 23.89989, "lng": 120.37581, "town": "二林鎮", "calibrated": false},
+            {"name": "大城鄉公所", "address": "大城鄉大城村中平路185號", "lat": 23.852336, "lng": 120.320498, "town": "大城鄉", "calibrated": false},
+            {"name": "芳苑鄉公所", "address": "芳苑鄉芳苑村斗苑路芳苑段202號", "lat": 23.926117, "lng": 120.317542, "town": "芳苑鄉", "calibrated": false},
+            {"name": "王功", "address": "芳苑鄉王功村芳漢路王功段500號", "lat": 23.968037, "lng": 120.334125, "town": "芳苑鄉", "calibrated": false},
+            {"name": "溪湖轉運站", "address": "溪湖鎮員鹿路三段245號旁", "lat": 23.95159, "lng": 120.47895, "town": "溪湖鎮", "calibrated": false},
+            {"name": "溪湖高中", "address": "溪湖鎮大突里五德街100號", "lat": 23.958742, "lng": 120.468393, "town": "溪湖鎮", "calibrated": false},
+            {"name": "埔鹽鄉公所", "address": "埔鹽鄉好修村中正路84號", "lat": 23.983226, "lng": 120.465487, "town": "埔鹽鄉", "calibrated": false},
+            {"name": "埔心鄉公所", "address": "埔心鄉義民村員鹿路二段254號", "lat": 23.951478, "lng": 120.528439, "town": "埔心鄉", "calibrated": false},
+            {"name": "彰化醫院(南行)", "address": "埔心鄉中正路二段80號", "lat": 23.96347, "lng": 120.50543, "town": "埔心鄉", "calibrated": false},
+            {"name": "福興鄉公所", "address": "福興鄉橋頭村彰鹿路七段495號", "lat": 24.050631, "lng": 120.453215, "town": "福興鄉", "calibrated": false},
+            {"name": "和美鎮公所", "address": "和美鎮鹿和路六段337號", "lat": 24.11025, "lng": 120.49583, "town": "和美鎮", "calibrated": false},
+            {"name": "伸港國中", "address": "伸港鄉新港村新港路190號", "lat": 24.15234, "lng": 120.48542, "town": "伸港鄉", "calibrated": false},
+            {"name": "花壇鄉公所", "address": "花壇鄉南口村中山路二段250號", "lat": 24.02534, "lng": 120.53915, "town": "花壇鄉", "calibrated": false},
+            {"name": "村上火車站", "address": "大村鄉村上村福中路100號", "lat": 23.99342, "lng": 120.53852, "town": "大村鄉", "calibrated": false},
+            {"name": "永靖火車站", "address": "永靖鄉永興村站前路1號", "lat": 23.91852, "lng": 120.55234, "town": "永靖鄉", "calibrated": false},
+            {"name": "社頭國中", "address": "社頭鄉中興路1號", "lat": 23.89234, "lng": 120.56452, "town": "社頭鄉", "calibrated": false},
+            {"name": "二水國中", "address": "二水鄉源泉村文化路1號", "lat": 23.80852, "lng": 120.62234, "town": "二水鄉", "calibrated": false},
+            {"name": "北斗鎮公所", "address": "北斗鎮地政路421號", "lat": 23.87534, "lng": 120.52352, "town": "北斗鎮", "calibrated": false},
+            {"name": "溪州國小", "address": "溪州鄉溪州村中央路三段300號", "lat": 23.85123, "lng": 120.49234, "town": "溪州鄉", "calibrated": false},
+            {"name": "竹塘國小", "address": "竹塘鄉竹塘村竹林路二段1號", "lat": 23.85652, "lng": 120.42534, "town": "竹塘鄉", "calibrated": false},
+            {"name": "二林鎮公所", "address": "二林鎮斗苑路四段636號", "lat": 23.89852, "lng": 120.36852, "town": "二林鎮", "calibrated": false},
+            {"name": "大城國小", "address": "大城鄉大城村中平路1號", "lat": 23.85023, "lng": 120.31852, "town": "大城鄉", "calibrated": false},
+            {"name": "芳苑國中", "address": "芳苑鄉芳苑村斗苑路1號", "lat": 23.92123, "lng": 120.30542, "town": "芳苑鄉", "calibrated": false},
+            {"name": "溪湖鎮公所", "address": "溪湖鎮青雅路1號", "lat": 23.95652, "lng": 120.47534, "town": "溪湖鎮", "calibrated": false},
+            {"name": "埔鹽國中", "address": "埔鹽鄉好修村中正路1號", "lat": 23.98523, "lng": 120.46123, "town": "埔鹽鄉", "calibrated": false},
+            {"name": "埔心國小", "address": "埔心鄉義民村員鹿路二段1號", "lat": 23.95342, "lng": 120.52534, "town": "埔心鄉", "calibrated": false},
+            {"name": "福興國中", "address": "福興鄉橋頭村彰鹿路七段1號", "lat": 24.04852, "lng": 120.45652, "town": "福興鄉", "calibrated": false},
+            {"name": "秀水鄉公所", "address": "秀水鄉安溪村中山路290號", "lat": 24.03234, "lng": 120.50421, "town": "秀水鄉", "calibrated": false},
+            {"name": "秀水高工", "address": "秀水鄉福興村中山路1號", "lat": 24.03521, "lng": 120.50123, "town": "秀水鄉", "calibrated": false},
+            {"name": "芬園鄉公所", "address": "芬園鄉芬園村彰南路四段250號", "lat": 24.01234, "lng": 120.62852, "town": "芬園鄉", "calibrated": false},
+            {"name": "芬園國中", "address": "芬園鄉芬園村彰南路四段1號", "lat": 24.01521, "lng": 120.62534, "town": "芬園鄉", "calibrated": false},
+            {"name": "三條圳 (南行)", "address": "溪州鄉中央路二段", "lat": 23.91234, "lng": 120.49521, "town": "溪州鄉", "calibrated": false},
+            {"name": "五汁頭(北行)", "address": "永靖鄉中山路一段", "lat": 23.93521, "lng": 120.55421, "town": "永靖鄉", "calibrated": false},
+            {"name": "正新輪胎(北行)", "address": "溪州鄉中山路", "lat": 23.86852, "lng": 120.47534, "town": "溪州鄉", "calibrated": false},
+            {"name": "溪厝太平路(北行)", "address": "溪州鄉太平路", "lat": 23.84852, "lng": 120.46521, "town": "溪州鄉", "calibrated": false},
+            {"name": "橋仔(南行)", "address": "北斗鎮斗苑路", "lat": 23.92852, "lng": 120.48521, "town": "北斗鎮", "calibrated": false},
+            {"name": "大成國中", "address": "彰化市自強路1號", "lat": 24.09123, "lng": 120.54234, "town": "彰化市", "calibrated": false},
+            {"name": "彰化高商", "address": "彰化市南郭路一段326號", "lat": 24.07234, "lng": 120.55214, "town": "彰化市", "calibrated": false},
+            {"name": "彰化高中", "address": "彰化市中興路78號", "lat": 24.07012, "lng": 120.55432, "town": "彰化市", "calibrated": false},
+            {"name": "建國科技大學", "address": "彰化市介壽北路1號", "lat": 24.06523, "lng": 120.54852, "town": "彰化市", "calibrated": false},
+            {"name": "彰化師範大學", "address": "彰化市進德路1號", "lat": 24.08852, "lng": 120.55852, "town": "彰化市", "calibrated": false},
+            {"name": "和美便民綜合大樓", "address": "和美鎮鹿和路六段", "lat": 24.11234, "lng": 120.49123, "town": "和美鎮", "calibrated": false},
+            {"name": "鹿港遊客中心", "address": "鹿港鎮復興路436號", "lat": 24.05912, "lng": 120.43123, "town": "鹿港鎮", "calibrated": false},
+            {"name": "鹿港文武廟", "address": "鹿港鎮青雲路2號", "lat": 24.04912, "lng": 120.44123, "town": "鹿港鎮", "calibrated": false},
+            {"name": "頂厝里", "address": "鹿港鎮鹿和路一段", "lat": 24.06521, "lng": 120.44852, "town": "鹿港鎮", "calibrated": false},
+            {"name": "草港", "address": "鹿港鎮頂草路四段", "lat": 24.09521, "lng": 120.42123, "town": "鹿港鎮", "calibrated": false},
+            {"name": "線西國小", "address": "線西鄉中央路二段", "lat": 24.12521, "lng": 120.46521, "town": "線西鄉", "calibrated": false},
+            {"name": "伸港鄉醫療綜合大樓", "address": "伸港鄉中興路", "lat": 24.15652, "lng": 120.48123, "town": "伸港鄉", "calibrated": false},
+            {"name": "花壇國中", "address": "花壇鄉彰員路三段", "lat": 24.02123, "lng": 120.54852, "town": "花壇鄉", "calibrated": false},
+            {"name": "大村國小", "address": "大村鄉中正西路", "lat": 23.99123, "lng": 120.52852, "town": "大村鄉", "calibrated": false},
+            {"name": "員林市公所", "address": "員林市三民街18號", "lat": 23.95912, "lng": 120.57123, "town": "員林市", "calibrated": false},
+            {"name": "員林演藝廳", "address": "員林市員林大道二段99號", "lat": 23.94521, "lng": 120.56952, "town": "員林市", "calibrated": false},
+            {"name": "社頭鄉立圖書館", "address": "社頭鄉信義路", "lat": 23.89123, "lng": 120.56123, "town": "社頭鄉", "calibrated": false},
+            {"name": "田中鎮立圖書館", "address": "田中鎮中路街", "lat": 23.85912, "lng": 120.58952, "town": "田中鎮", "calibrated": false},
+            {"name": "二水鄉立圖書館", "address": "二水鄉聖化村", "lat": 23.81521, "lng": 120.61123, "town": "二水鄉", "calibrated": false},
+            {"name": "北斗鎮立圖書館", "address": "北斗鎮光復路", "lat": 23.87123, "lng": 120.52852, "town": "北斗鎮", "calibrated": false},
+            {"name": "溪湖鎮立圖書館", "address": "溪湖鎮太平街", "lat": 23.95521, "lng": 120.47123, "town": "溪湖鎮", "calibrated": false},
+            {"name": "和美鎮立圖書館", "address": "和美鎮道周路", "lat": 24.10852, "lng": 120.49852, "town": "和美鎮", "calibrated": false}
         ];
 
         // 地圖相關全域變數
@@ -365,6 +388,8 @@
         var markerClusterGroup;
         var markersMap = new Map(); // 用來藉由索引快速取得 marker 物件
         var activeUserMarker = null; // 儲存使用者定位 marker
+        var customSearchMarker = null; // 儲存自訂地址定位的大頭針
+        var nearestLines = []; // 儲存連接最近站點的線條
         var currentCategory = 'all'; // 儲存目前選取的分類
 
         // 地圖底圖圖層 definitions
@@ -486,6 +511,50 @@
             townFilterSelect.innerHTML = optionsHTML;
         }
 
+        // 動態生成 Popup 的 HTML 內容 (智慧地址過濾 + 導航到實體地址，確保藍底白字)
+        function createPopupContent(item) {
+            // 整理地址，確保補上彰化縣市、過濾定位干擾字詞（如：對面、旁、南北行），提昇 Google 地圖定位成功率
+            let destinationAddress = item.address;
+            if (!destinationAddress.startsWith("彰化")) {
+                destinationAddress = "彰化縣" + (item.town || "") + destinationAddress;
+            }
+            // 去除不必要的修飾詞以提昇搜尋精準度
+            const cleanDestinationAddress = destinationAddress.replace(/(對面|旁|\(南行\)|\(北行\))/g, '').trim();
+            const googleMapUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(cleanDestinationAddress)}`;
+
+            const calibrationBadge = item.calibrated
+                ? `<span class="inline-block px-1.5 py-0.5 bg-emerald-100 text-emerald-800 text-[9px] font-bold rounded-md border border-emerald-200">
+                    📡 高精度地址校正
+                   </span>`
+                : `<span class="inline-block px-1.5 py-0.5 bg-amber-50 text-amber-700 text-[9px] font-bold rounded-md border border-amber-200">
+                    📍 預估座標定位
+                   </span>`;
+
+            return `
+                <div class="p-1 min-w-[200px]">
+                    <div class="flex items-center justify-between mb-2 gap-1.5">
+                        <span class="inline-block px-1.5 py-0.5 bg-brand-50 text-brand-700 text-[10px] font-bold rounded-md">
+                            📍 ${item.town}
+                        </span>
+                        ${calibrationBadge}
+                    </div>
+                    <h3 class="text-sm font-bold text-slate-800 mb-1 flex items-center">
+                        <span class="mr-1.5 text-brand-600">🚌</span> ${item.name}
+                    </h3>
+                    <p class="text-xs text-slate-500 mb-3 leading-relaxed">
+                        <strong>座落位置：</strong><br>${item.address}
+                    </p>
+                    <div class="pt-2 border-t border-slate-100 flex items-center justify-between">
+                        <span class="text-[10px] text-slate-400">經緯度: ${item.lat.toFixed(4)}, ${item.lng.toFixed(4)}</span>
+                        <a href="${googleMapUrl}" target="_blank" class="px-2.5 py-1 bg-brand-600 hover:bg-brand-700 !text-white text-[11px] font-medium rounded-md shadow-sm transition flex items-center space-x-1 no-underline" style="color: white !important;">
+                            <span class="!text-white">導航</span>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: white !important;"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
+                        </a>
+                    </div>
+                </div>
+            `;
+        }
+
         function renderDashboard() {
             const townFilter = document.getElementById('town-filter').value;
             const searchQuery = document.getElementById('search-input').value.trim().toLowerCase();
@@ -531,32 +600,13 @@
                 // 建立 Leaflet Marker
                 const marker = L.marker([item.lat, item.lng], { icon: customBusIcon });
                 
-                // 設定高質感、響應式的 Popup 氣泡框 (支援一鍵導航，修正 Leaflet 藍色連結覆蓋，確保藍底白字)
-                const googleMapUrl = `https://www.google.com/maps/dir/?api=1&destination=${item.lat},${item.lng}`;
-                const popupContent = `
-                    <div class="p-1 min-w-[200px]">
-                        <span class="inline-block px-2 py-0.5 mb-2 bg-brand-50 text-brand-700 text-[10px] font-bold rounded-md">
-                            📍 彰化縣 • ${item.town}
-                        </span>
-                        <h3 class="text-sm font-bold text-slate-800 mb-1 flex items-center">
-                            <span class="mr-1.5 text-brand-600">🚌</span> ${item.name}
-                        </h3>
-                        <p class="text-xs text-slate-500 mb-3 leading-relaxed">
-                            <strong>座落位置：</strong><br>${item.address}
-                        </p>
-                        <div class="pt-2 border-t border-slate-100 flex items-center justify-between">
-                            <span class="text-[10px] text-slate-400">經緯度: ${item.lat.toFixed(4)}, ${item.lng.toFixed(4)}</span>
-                            <a href="${googleMapUrl}" target="_blank" class="px-2.5 py-1 bg-brand-600 hover:bg-brand-700 !text-white text-[11px] font-medium rounded-md shadow-sm transition flex items-center space-x-1 no-underline" style="color: white !important;">
-                                <span class="!text-white">導航</span>
-                                <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: white !important;"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
-                            </a>
-                        </div>
-                    </div>
-                `;
-                marker.bindPopup(popupContent);
+                // 設定彈出氣泡框
+                marker.bindPopup(createPopupContent(item));
                 
                 // 儲存 Marker 物件至快取 Map
-                const stationId = `station-${index}`;
+                // 注意：使用站點在原始 'data' 陣列中的真正索引，以便校正時精準修改原始資料
+                const realIndex = data.indexOf(item);
+                const stationId = `station-${realIndex}`;
                 markersMap.set(stationId, marker);
                 markerClusterGroup.addLayer(marker);
 
@@ -569,7 +619,7 @@
 
                 // 生成清單 HTML Item
                 listHTML += `
-                    <div onclick="focusStation('${stationId}', ${item.lat}, ${item.lng})" 
+                    <div onclick="focusStation('${stationId}', ${item.lat}, ${item.lng}, ${realIndex})" 
                          class="p-4 hover:bg-slate-50 border-l-4 border-transparent hover:border-brand-600 transition duration-150 cursor-pointer flex justify-between items-start group">
                         <div class="space-y-1 pr-3">
                             <div class="flex items-center space-x-1.5">
@@ -579,6 +629,10 @@
                                 <span class="text-[10px] font-medium text-slate-400">
                                     ${catBadge}
                                 </span>
+                                ${item.calibrated ? `
+                                <span class="inline-flex items-center px-1 py-0.5 bg-emerald-50 text-emerald-700 text-[9px] font-bold rounded">
+                                    ✓ 已校正
+                                </span>` : ''}
                             </div>
                             <h4 class="text-sm font-bold text-slate-800 group-hover:text-brand-700 transition">
                                 ${item.name}
@@ -598,25 +652,89 @@
             lucide.createIcons(); // 重新綁定圖標
         }
 
-        // 當使用者點選側邊欄站點時
-        function focusStation(id, lat, lng) {
+        // 開放地理編碼服務 (OSM Nominatim Geocoding API)
+        async function geocodeAddress(address, town) {
+            // 建構一個完整的查詢字串
+            let query = address;
+            if (!query.includes("彰化")) {
+                query = "彰化縣" + (town || "") + query;
+            }
+            // 清除對面、旁、(南行)、(北行)等干擾 Nominatim 門牌精準定位的雜訊
+            query = query.replace(/(對面|旁|\(南行\)|\(北行\))/g, '').trim();
+
+            const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(query)}`;
+            
+            try {
+                const response = await fetch(url, {
+                    headers: {
+                        'Accept-Language': 'zh-TW,zh;q=0.9',
+                        'User-Agent': 'ChanghuaBusShelterMap/1.0 (contact: busmap@example.com)'
+                    }
+                });
+                if (!response.ok) throw new Error("API Network error");
+                const results = await response.json();
+                if (results && results.length > 0) {
+                    return {
+                        lat: parseFloat(results[0].lat),
+                        lng: parseFloat(results[0].lon)
+                    };
+                }
+            } catch (err) {
+                console.error("地址地理編碼解析失敗:", query, err);
+            }
+            return null;
+        }
+
+        // 當使用者點選側邊欄站點時 (支援即時地址校正)
+        async function focusStation(id, lat, lng, realIndex) {
             const marker = markersMap.get(id);
             if (!marker) return;
+
+            const item = data[realIndex];
+            const isCalibrationEnabled = document.getElementById('toggle-calibration').checked;
+
+            let targetLat = lat;
+            let targetLng = lng;
+
+            // 如果啟用校正，且該站點尚未校正過，則即時連線校正地址
+            if (isCalibrationEnabled && !item.calibrated) {
+                showToast(`正在連線校正地址座標...`);
+                const preciseCoord = await geocodeAddress(item.address, item.town);
+                
+                if (preciseCoord) {
+                    // 更新記憶體中的座標
+                    item.lat = preciseCoord.lat;
+                    item.lng = preciseCoord.lng;
+                    item.calibrated = true; // 標記為已校正
+                    
+                    targetLat = preciseCoord.lat;
+                    targetLng = preciseCoord.lng;
+
+                    // 平滑修改地圖標記座標並重新渲染 Popup 氣泡資訊
+                    marker.setLatLng([targetLat, targetLng]);
+                    marker.setPopupContent(createPopupContent(item));
+                    
+                    // 重繪清單列表 (使 ✓已校正 徽章即時出現在左側)
+                    renderDashboard();
+                    showToast(`✅ 地址校正成功！已位移至高精度實體門牌位置`);
+                } else {
+                    showToast(`⚠️ 地址庫未寻獲此門牌，已退回使用預估座標`);
+                }
+            }
 
             // 縮小側邊欄 (如果是手機版操作)
             if (window.innerWidth < 768) {
                 toggleSidebarMobile(false);
             }
 
-            // 平滑飛向目標座標，並調高縮放層級以突顯目標
-            map.flyTo([lat, lng], 17, {
+            // 平滑飛向最終座標
+            map.flyTo([targetLat, targetLng], 17, {
                 animate: true,
                 duration: 1.5
             });
 
             // 待動畫快結束時自動開啟氣泡窗
             setTimeout(() => {
-                // 如果 Marker 目前包含在 Cluster 之中，先展開它以供 Popup 能正常彈出
                 if (markerClusterGroup.hasLayer(marker)) {
                     markerClusterGroup.zoomToShowLayer(marker, function() {
                         marker.openPopup();
@@ -625,6 +743,89 @@
                     marker.openPopup();
                 }
             }, 1200);
+        }
+
+        // 自訂地址查詢並圈選最近 3 站公車亭
+        async function searchCustomAddress() {
+            const inputVal = document.getElementById('custom-address-input').value.trim();
+            if (!inputVal) {
+                showToast("請先輸入您要定位的地址");
+                return;
+            }
+
+            showToast("正在解析該地址之高精度經緯度...");
+            const coord = await geocodeAddress(inputVal, "");
+
+            if (!coord) {
+                showToast("🔍 找不到該地址，請輸入更具體的地標或路名門牌");
+                return;
+            }
+
+            // 1. 移除先前自訂的定位大頭針與連線
+            if (customSearchMarker) {
+                map.removeLayer(customSearchMarker);
+            }
+            nearestLines.forEach(line => map.removeLayer(line));
+            nearestLines = [];
+
+            // 2. 在地圖放上醒目的橘色五角星定位標記
+            const orangeStarIcon = L.divIcon({
+                html: `
+                    <div class="relative flex items-center justify-center">
+                        <span class="absolute inline-flex h-10 w-10 rounded-full bg-orange-400 opacity-40 animate-ping"></span>
+                        <div class="relative flex items-center justify-center w-8 h-8 rounded-full bg-orange-500 text-white shadow-xl border-2 border-white">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" class="text-white"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                        </div>
+                    </div>`,
+                className: 'custom-search-marker',
+                iconSize: [40, 40],
+                iconAnchor: [20, 20]
+            });
+
+            customSearchMarker = L.marker([coord.lat, coord.lng], { icon: orangeStarIcon }).addTo(map);
+            customSearchMarker.bindPopup(`
+                <div class="p-1">
+                    <span class="inline-block px-1.5 py-0.5 bg-orange-100 text-orange-800 text-[9px] font-bold rounded-md mb-1">🗺️ 自訂定位點</span>
+                    <p class="text-xs font-bold text-slate-800 m-0">${inputVal}</p>
+                    <p class="text-[10px] text-slate-400 mt-1">已為您繪製與最近 3 站公車亭的導引虛線</p>
+                </div>
+            `).openPopup();
+
+            // 3. 計算與 106 個站點的距離並找出最近的 3 站
+            const stationsWithDistance = data.map((item, index) => {
+                const distance = map.distance([coord.lat, coord.lng], [item.lat, item.lng]); // 單位為公尺
+                return { item, distance, index };
+            });
+
+            // 依距離由近到遠排序
+            stationsWithDistance.sort((a, b) => a.distance - b.distance);
+            const nearestThree = stationsWithDistance.slice(0, 3);
+
+            // 4. 繪製導引虛線，並更新對應候車亭的 Popup
+            nearestThree.forEach((near, i) => {
+                const colors = ['#f97316', '#fb923c', '#fdba74']; // 近 ➡️ 遠 (深橘 ➡️ 淺橘)
+                const line = L.polyline([[coord.lat, coord.lng], [near.item.lat, near.item.lng]], {
+                    color: colors[i],
+                    weight: 3 - (i * 0.5),
+                    dashArray: '5, 8',
+                    opacity: 0.8
+                }).addTo(map);
+                nearestLines.push(line);
+
+                // 為最近的站點 Marker 綁定距離提示文字
+                const marker = markersMap.get(`station-${near.index}`);
+                if (marker) {
+                    const km = (near.distance / 1000).toFixed(2);
+                    marker.bindTooltip(`距離定位點: ${km} 公里`, { permanent: false, direction: 'top' });
+                }
+            });
+
+            // 5. 地圖平滑移至定位點，並調整適當視野以容納定位點與最近的站點
+            const bounds = L.latLngBounds([coord.lat, coord.lng]);
+            nearestThree.forEach(near => bounds.extend([near.item.lat, near.item.lng]));
+            map.fitBounds(bounds, { padding: [50, 50] });
+
+            showToast(`🎉 已成功尋獲該地址！並繪製出最近的 3 個候車亭連線`);
         }
 
         // 電腦版側邊欄 隱藏與顯現 切換
@@ -659,6 +860,8 @@
             const townFilterSelect = document.getElementById('town-filter');
             const searchInput = document.getElementById('search-input');
             const clearSearchBtn = document.getElementById('clear-search');
+            const customAddressInput = document.getElementById('custom-address-input');
+            const searchAddressBtn = document.getElementById('btn-search-address');
 
             // 鄉鎮市下拉選單變更事件
             townFilterSelect.addEventListener('change', renderDashboard);
@@ -693,6 +896,14 @@
                 clearSearchBtn.classList.add('hidden');
                 renderDashboard();
                 searchInput.focus();
+            });
+
+            // 自訂地址搜尋事件 (點選按鈕 / 按下 Enter 鍵)
+            searchAddressBtn.addEventListener('click', searchCustomAddress);
+            customAddressInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    searchCustomAddress();
+                }
             });
 
             // 底圖切換器按鈕事件
@@ -731,7 +942,7 @@
                 showToast("已切換至夜間極黑底圖");
             });
 
-            // 使用者 GPS 定量功能
+            // 使用者 GPS 定位功能
             const locateBtn = document.getElementById('btn-locate');
             locateBtn.addEventListener('click', function() {
                 locateBtn.classList.add('animate-pulse');
@@ -773,6 +984,14 @@
             // 重設地圖中心視野
             const resetViewBtn = document.getElementById('btn-reset-view');
             resetViewBtn.addEventListener('click', function() {
+                // 清除自訂搜尋點與虛線
+                if (customSearchMarker) {
+                    map.removeLayer(customSearchMarker);
+                    customSearchMarker = null;
+                }
+                nearestLines.forEach(line => map.removeLayer(line));
+                nearestLines = [];
+
                 map.flyTo([23.98, 120.48], 11, {
                     animate: true,
                     duration: 1.2
