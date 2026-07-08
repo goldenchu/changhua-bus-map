@@ -210,16 +210,25 @@
         <div id="map" class="w-full h-full"></div>
 
         <!-- 頂部自訂任意地址定位搜尋面板 -->
-        <div class="absolute top-4 left-4 md:left-[104px] z-[1000] bg-white/95 backdrop-blur-md p-3 rounded-xl shadow-lg border border-slate-200/80 max-w-xs md:max-w-md w-[calc(100%-2rem)] md:w-96 pointer-events-auto">
+        <div id="address-search-panel" class="absolute top-4 left-4 md:left-[104px] z-[1000] bg-white/95 backdrop-blur-md p-3 rounded-xl shadow-lg border border-slate-200/80 max-w-xs md:max-w-md w-[calc(100%-2rem)] md:w-96 pointer-events-auto transition-all duration-300 ease-in-out">
             <div class="space-y-2">
-                <div class="flex items-center space-x-2">
-                    <span class="flex h-2 w-2 relative">
-                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
-                        <span class="relative inline-flex rounded-full h-2 w-2 bg-orange-500"></span>
-                    </span>
-                    <h2 class="font-bold text-slate-800 text-xs">輸入任意地址，尋找最近候車亭</h2>
+                <!-- 面板標頭 (點擊此列或右側按鈕可收折) -->
+                <div id="address-search-header" class="flex items-center justify-between cursor-pointer select-none group">
+                    <div class="flex items-center space-x-2">
+                        <span class="flex h-2 w-2 relative">
+                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
+                            <span class="relative inline-flex rounded-full h-2 w-2 bg-orange-500"></span>
+                        </span>
+                        <h2 class="font-bold text-slate-800 text-xs group-hover:text-orange-500 transition-colors">輸入任意地址，尋找最近候車亭</h2>
+                    </div>
+                    <!-- 收折按鈕 -->
+                    <button id="btn-toggle-address-panel" class="p-1 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-600 transition" title="展開/收折面板">
+                        <i id="address-panel-icon" data-lucide="chevron-up" class="w-4 h-4"></i>
+                    </button>
                 </div>
-                <div class="flex space-x-1.5">
+                
+                <!-- 搜尋內容輸入區 (可縮小/收折) -->
+                <div id="address-search-body" class="flex space-x-1.5 transition-all duration-300 ease-in-out opacity-100 max-h-20 overflow-hidden">
                     <div class="relative flex-1">
                         <input type="text" id="custom-address-input" placeholder="例如: 彰化市中山路二段416號..." class="w-full pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-brand-600 focus:border-brand-600 shadow-sm transition">
                         <div class="absolute inset-y-0 left-0 flex items-center pl-2.5 pointer-events-none text-slate-400">
@@ -314,7 +323,7 @@
             {"name": "二水火車站", "address": "二水鄉光文路1號", "lat": 23.811771, "lng": 120.617937, "town": "二水鄉", "calibrated": false},
             {"name": "二水鄉公所", "address": "二水鄉過圳村光文路119號", "lat": 23.813083, "lng": 120.615286, "town": "二水鄉", "calibrated": false},
             {"name": "永靖鄉公所", "address": "永靖鄉永西村中山路二段273號", "lat": 23.921312, "lng": 120.548483, "town": "永靖鄉", "calibrated": false},
-            {"name": "永東村", "address": "永靖鄉永靖街17號", "lat": 23.924823, "lng": 120.543596, "town": "永東村", "calibrated": false},
+            {"name": "永東村", "address": "永靖鄉永靖街17號", "lat": 23.924823, "lng": 120.543596, "town": "永靖鄉", "calibrated": false},
             {"name": "田尾公路花園", "address": "田尾鄉民生路一段180號對面", "lat": 23.90045, "lng": 120.52839, "town": "田尾鄉", "calibrated": false},
             {"name": "田尾鄉公所", "address": "田尾鄉公公所路51號", "lat": 23.891157, "lng": 120.526276, "town": "田尾鄉", "calibrated": false},
             {"name": "北斗奠安宮", "address": "北斗鎮東門里宮前街1-14號", "lat": 23.872288, "lng": 120.525642, "town": "北斗鎮", "calibrated": false},
@@ -380,7 +389,7 @@
             {"name": "二水鄉立圖書館", "address": "二水鄉聖化村", "lat": 23.81521, "lng": 120.61123, "town": "二水鄉", "calibrated": false},
             {"name": "北斗鎮立圖書館", "address": "北斗鎮光復路", "lat": 23.87123, "lng": 120.52852, "town": "北斗鎮", "calibrated": false},
             {"name": "溪湖鎮立圖書館", "address": "溪湖鎮太平街", "lat": 23.95521, "lng": 120.47123, "town": "溪湖鎮", "calibrated": false},
-            {"name": "和美鎮立圖書館", "address": "和美鎮道周路", "lat": 24.10852, "lng": 120.49852, "town": "和美鎮", "calibrated": false}
+            {"name": "和美鎮立圖書館", "address": "和美鎮道周路", "lat": 24.10852, "lng": 120.49852, "town": "和美鎮"}
         ];
 
         // 地圖相關全域變數
@@ -904,6 +913,38 @@
                 if (e.key === 'Enter') {
                     searchCustomAddress();
                 }
+            });
+
+            // 自訂頂部任意地址面板：可摺疊、縮小、展開之功能控制
+            const addressSearchHeader = document.getElementById('address-search-header');
+            const btnToggleAddressPanel = document.getElementById('btn-toggle-address-panel');
+            const addressSearchBody = document.getElementById('address-search-body');
+            const addressPanelIcon = document.getElementById('address-panel-icon');
+            let isAddressPanelCollapsed = false;
+
+            function toggleAddressPanel() {
+                isAddressPanelCollapsed = !isAddressPanelCollapsed;
+                if (isAddressPanelCollapsed) {
+                    // 縮小收合狀態
+                    addressSearchBody.classList.remove('opacity-100', 'max-h-20');
+                    addressSearchBody.classList.add('opacity-0', 'max-h-0', 'pointer-events-none');
+                    addressPanelIcon.setAttribute('data-lucide', 'chevron-down');
+                    showToast("已縮小地址搜尋面板");
+                } else {
+                    // 展開顯現狀態
+                    addressSearchBody.classList.remove('opacity-0', 'max-h-0', 'pointer-events-none');
+                    addressSearchBody.classList.add('opacity-100', 'max-h-20');
+                    addressPanelIcon.setAttribute('data-lucide', 'chevron-up');
+                    showToast("已展開地址搜尋面板");
+                }
+                lucide.createIcons();
+            }
+
+            // 點選標頭或摺疊小圖標時切換狀態
+            addressSearchHeader.addEventListener('click', toggleAddressPanel);
+            btnToggleAddressPanel.addEventListener('click', (e) => {
+                e.stopPropagation(); // 阻止事件冒泡防止點擊 header 重複觸發
+                toggleAddressPanel();
             });
 
             // 底圖切換器按鈕事件
